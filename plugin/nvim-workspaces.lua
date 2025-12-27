@@ -312,7 +312,7 @@ vim.api.nvim_create_user_command("Workspaces", workspaces_cmd, {
 
 -- <Plug> mappings
 vim.keymap.set("n", "<Plug>(nvim-workspaces-add)", function()
-  require("nvim-workspaces.telescope").pick_add()
+  subcommands.add.impl({})
 end, { desc = "Add folder to workspace" })
 
 vim.keymap.set("n", "<Plug>(nvim-workspaces-remove)", function()
