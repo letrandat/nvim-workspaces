@@ -51,4 +51,42 @@ function M.load_workspace_file(file_path)
   return folders
 end
 
+---Write folders to a .code-workspace file
+---@param file_path string Path to the .code-workspace file
+---@param folders string[] List of absolute folder paths
+---@return boolean success
+function M.write_workspace_file(file_path, folders)
+  local base_dir = vim.fs.dirname(file_path)
+  local data = { folders = {} }
+
+  for _, folder in ipairs(folders) do
+    local path_Obj = {}
+    -- Try to make relative
+    local relative = vim.fs.normalize(folder)
+    local base = vim.fs.normalize(base_dir)
+
+    -- simple check if folder is inside base or nice relative
+    -- for robust relative path, we can use a helper or just check prefix
+    if vim.startswith(relative, base .. "/") then
+       path_Obj.path = relative:sub(#base + 2)
+    else
+        -- Fallback to absolute if not child
+        -- OR TODO: calculate ../ relative path safely?
+        -- For now, let's stick to absolute if not simple child, or use absolute
+        path_Obj.path = folder
+    end
+
+    table.insert(data.folders, path_Obj)
+  end
+
+  local json = vim.json.encode(data)
+  local ok, err = pcall(vim.fn.writefile, { json }, file_path)
+
+  if not ok then
+      vim.notify("[nvim-workspaces] Failed to write workspace file: " .. (err or "unknown"), vim.log.levels.ERROR)
+      return false
+  end
+  return true
+end
+
 return M

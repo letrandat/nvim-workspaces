@@ -214,6 +214,44 @@ local subcommands = {
       end
     end,
   },
+  -- Export workspace to .code-workspace file
+  export = {
+    impl = function()
+      local ws = require("nvim-workspaces")
+      local code_workspace = require("nvim-workspaces.code_workspace")
+
+      -- Determine default name
+      local default_name = "workspace-nvim.code-workspace"
+
+      -- If we have a tracked code workspace path, derive from it
+      if ws.state.code_workspace_path then
+        local basename = vim.fn.fnamemodify(ws.state.code_workspace_path, ":t:r")
+        -- If already ends in -nvim, keep it, else append -nvim
+        if not vim.endswith(basename, "-nvim") then
+            basename = basename .. "-nvim"
+        end
+        default_name = basename .. ".code-workspace"
+      elseif ws.state.name then
+         -- Fallback to internal name
+         default_name = ws.state.name .. "-nvim.code-workspace"
+      end
+
+      vim.ui.input({ prompt = "Export workspace to: ", default = default_name }, function(input)
+        if input and input ~= "" then
+            -- If input is just a filename, assume cwd; else allow full path
+            local target_path = input
+            if not vim.startswith(input, "/") then
+                target_path = vim.fn.getcwd() .. "/" .. input
+            end
+
+            local folders = ws.list()
+            if code_workspace.write_workspace_file(target_path, folders) then
+                vim.notify("[nvim-workspaces] Exported to: " .. target_path, vim.log.levels.INFO)
+            end
+        end
+      end)
+    end,
+  },
 }
 
 -- Main command handler
@@ -304,6 +342,10 @@ vim.keymap.set("n", "<Plug>(nvim-workspaces-open)", function()
   subcommands.open.impl({})
 end, { desc = "Open workspace file" })
 
+vim.keymap.set("n", "<Plug>(nvim-workspaces-export)", function()
+  subcommands.export.impl({})
+end, { desc = "Export workspace to .code-workspace" })
+
 -- Auto-load logic
 vim.api.nvim_create_autocmd("VimEnter", {
   callback = function()
@@ -319,6 +361,7 @@ vim.api.nvim_create_autocmd("VimEnter", {
           for _, folder in ipairs(folders) do
             workspaces.add(folder)
           end
+          workspaces.state.code_workspace_path = ws_file
           vim.notify(
             "[nvim-workspaces] Loaded workspace from " .. vim.fn.fnamemodify(ws_file, ":t"),
             vim.log.levels.INFO

@@ -9,6 +9,7 @@
 ---@class nvim-workspaces.State
 ---@field folders string[] Currently active workspace folders
 ---@field name string|nil Current workspace name
+---@field code_workspace_path string|nil Path to the loaded .code-workspace file
 
 ---@class nvim-workspaces
 ---@field config nvim-workspaces.Config
@@ -29,6 +30,7 @@ M.config = {
 M.state = {
   folders = {},
   name = nil,
+  code_workspace_path = nil,
 }
 
 ---Configure the plugin (optional - works without calling this)
@@ -45,6 +47,7 @@ function M.setup(opts)
       { "<leader>WL", "<cmd>Workspaces list<cr>", desc = "List Workspace Folders" },
       { "<leader>Wc", "<cmd>Workspaces clear<cr>", desc = "Clear Workspace" },
       { "<leader>Wd", "<cmd>Workspaces delete<cr>", desc = "Delete Saved Workspace" },
+      { "<leader>We", "<cmd>Workspaces export<cr>", desc = "Export Workspace to File" },
       { "<leader>Wn", "<cmd>Workspaces rename<cr>", desc = "Rename Workspace" },
       { "<leader>Wf", "<cmd>Workspaces find<cr>", desc = "Find Files in Workspace" },
       { "<leader>Wo", "<cmd>Workspaces open<cr>", desc = "Open Workspace File" },
