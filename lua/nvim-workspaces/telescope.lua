@@ -172,4 +172,45 @@ function M.pick_load()
   }):find()
 end
 
+---Get all search directories (CWD + workspace folders)
+---@return string[]
+function M.get_search_dirs()
+  local workspaces = require("nvim-workspaces")
+  local folders = workspaces.list()
+  local cwd = vim.fn.getcwd()
+
+  -- Use a set for deduping
+  local seen = {}
+  local dirs = {}
+
+  -- Add CWD first
+  table.insert(dirs, cwd)
+  seen[cwd] = true
+
+  for _, folder in ipairs(folders) do
+    if not seen[folder] then
+      table.insert(dirs, folder)
+      seen[folder] = true
+    end
+  end
+
+  return dirs
+end
+
+---Search files across all workspace folders + CWD
+function M.find_files()
+  if not has_telescope() then
+    vim.notify("[nvim-workspaces] Telescope is required for find_files", vim.log.levels.ERROR)
+    return
+  end
+
+  local builtin = require("telescope.builtin")
+  local dirs = M.get_search_dirs()
+
+  builtin.find_files({
+    search_dirs = dirs,
+    prompt_title = "Find Files (Workspace)",
+  })
+end
+
 return M

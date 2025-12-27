@@ -101,6 +101,11 @@ local subcommands = {
       return require("nvim-workspaces.persistence").list_saved()
     end,
   },
+  find = {
+    impl = function()
+      require("nvim-workspaces.telescope").find_files()
+    end,
+  },
 }
 
 -- Main command handler
@@ -171,6 +176,10 @@ end, { desc = "Save workspace" })
 vim.keymap.set("n", "<Plug>(nvim-workspaces-load)", function()
   require("nvim-workspaces.telescope").pick_load()
 end, { desc = "Load workspace" })
+
+vim.keymap.set("n", "<Plug>(nvim-workspaces-find)", function()
+  require("nvim-workspaces.telescope").find_files()
+end, { desc = "Find files in workspace" })
 
 -- Auto-load logic
 vim.api.nvim_create_autocmd("VimEnter", {
