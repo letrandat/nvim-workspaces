@@ -24,6 +24,7 @@ function M.save_current()
 
   local data = {
     folders = workspaces.state.folders,
+    name = workspaces.state.name,
     updated = os.date("!%Y-%m-%dT%H:%M:%SZ"),
   }
 
@@ -33,19 +34,20 @@ end
 
 ---Load current workspace state from _current.json
 ---@return string[] folders List of valid folder paths
+---@return string|nil name The workspace name
 function M.load_current()
   local dir = ensure_data_dir()
   local file = dir .. "/_current.json"
 
   if vim.fn.filereadable(file) == 0 then
-    return {}
+    return {}, nil
   end
 
   local content = vim.fn.readfile(file)
   local ok, data = pcall(vim.json.decode, table.concat(content, "\n"))
 
   if not ok or not data or not data.folders then
-    return {}
+    return {}, nil
   end
 
   -- Filter out non-existent directories
@@ -56,12 +58,13 @@ function M.load_current()
     end
   end
 
-  return valid
+  return valid, data.name
 end
 
 ---Save current workspace with a name
 ---@param name string The workspace name
-function M.save(name)
+---@param silent? boolean Whether to suppress notification
+function M.save(name, silent)
   local dir = ensure_data_dir()
   local file = dir .. "/" .. name .. ".json"
   local workspaces = get_workspaces()
@@ -73,7 +76,9 @@ function M.save(name)
 
   local json = vim.json.encode(data)
   vim.fn.writefile({ json }, file)
-  vim.notify("[nvim-workspaces] Saved workspace: " .. name, vim.log.levels.INFO)
+  if not silent then
+    vim.notify("[nvim-workspaces] Saved workspace: " .. name, vim.log.levels.INFO)
+  end
 end
 
 ---Load a named workspace
@@ -141,6 +146,35 @@ function M.list_saved()
   end
 
   return names
+end
+
+---Rename a saved workspace
+---@param old_name string The current workspace name
+---@param new_name string The new workspace name
+---@return boolean success Whether the rename was successful
+function M.rename(old_name, new_name)
+  local dir = get_workspaces().config.data_dir
+  local old_file = dir .. "/" .. old_name .. ".json"
+  local new_file = dir .. "/" .. new_name .. ".json"
+
+  if vim.fn.filereadable(old_file) == 0 then
+    vim.notify("[nvim-workspaces] Workspace not found: " .. old_name, vim.log.levels.ERROR)
+    return false
+  end
+
+  if vim.fn.filereadable(new_file) == 1 then
+    vim.notify("[nvim-workspaces] Workspace already exists: " .. new_name, vim.log.levels.ERROR)
+    return false
+  end
+
+  local success = vim.fn.rename(old_file, new_file)
+  if success == 0 then
+    vim.notify("[nvim-workspaces] Renamed workspace: " .. old_name .. " -> " .. new_name, vim.log.levels.INFO)
+    return true
+  else
+    vim.notify("[nvim-workspaces] Failed to rename workspace", vim.log.levels.ERROR)
+    return false
+  end
 end
 
 return M
