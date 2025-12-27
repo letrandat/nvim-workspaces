@@ -6,6 +6,7 @@ local M = {}
 ---Ensure data directory exists
 local function ensure_data_dir()
   local dir = require("nvim-workspaces").config.data_dir
+  assert(dir, "data_dir is required")
   if vim.fn.isdirectory(dir) == 0 then
     vim.fn.mkdir(dir, "p")
   end
@@ -129,6 +130,7 @@ end
 ---@return string[] names List of workspace names
 function M.list_saved()
   local dir = require("nvim-workspaces").config.data_dir
+  assert(dir, "data_dir is required")
 
   if vim.fn.isdirectory(dir) == 0 then
     return {}
