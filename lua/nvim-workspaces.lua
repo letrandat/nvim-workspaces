@@ -27,4 +27,10 @@ M.state = {
   folders = {},
 }
 
+---Configure the plugin (optional - works without calling this)
+---@param opts nvim-workspaces.Config|nil User configuration
+function M.setup(opts)
+  M.config = vim.tbl_deep_extend("force", M.config, opts or {})
+end
+
 return M

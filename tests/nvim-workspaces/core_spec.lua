@@ -10,4 +10,13 @@ describe("nvim-workspaces", function()
       assert.is_not_nil(workspaces.config.picker_cwd)
     end)
   end)
+
+  describe("setup", function()
+    it("merges user config with defaults", function()
+      workspaces.setup({ picker_cwd = "/custom/path" })
+      assert.equals("/custom/path", workspaces.config.picker_cwd)
+      -- defaults should still be present
+      assert.is_true(workspaces.config.auto_restore)
+    end)
+  end)
 end)
