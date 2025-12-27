@@ -13,6 +13,7 @@
 ## Task 1: JSONC Parser Module
 
 **Files:**
+
 - Create: `lua/nvim-workspaces/jsonc.lua`
 - Test: `tests/nvim-workspaces/jsonc_spec.lua`
 
@@ -224,6 +225,7 @@ git commit -m "feat(jsonc): add decode function with error handling"
 ## Task 2: Core Module - State and Config
 
 **Files:**
+
 - Create: `lua/nvim-workspaces.lua`
 - Test: `tests/nvim-workspaces/core_spec.lua`
 
@@ -352,6 +354,7 @@ git commit -m "feat(core): add setup function for optional config"
 ## Task 3: Core Module - Add/Remove/List/Clear
 
 **Files:**
+
 - Modify: `lua/nvim-workspaces.lua`
 - Modify: `tests/nvim-workspaces/core_spec.lua`
 
@@ -646,6 +649,7 @@ git commit -m "feat(core): add list and clear functions"
 ## Task 4: Persistence Module
 
 **Files:**
+
 - Create: `lua/nvim-workspaces/persistence.lua`
 - Test: `tests/nvim-workspaces/persistence_spec.lua`
 
@@ -1016,6 +1020,7 @@ git commit -m "feat(persistence): add save/load/delete/list_saved functions"
 ## Task 5: .code-workspace File Support
 
 **Files:**
+
 - Create: `lua/nvim-workspaces/code_workspace.lua`
 - Test: `tests/nvim-workspaces/code_workspace_spec.lua`
 
@@ -1215,6 +1220,7 @@ git commit -m "feat(code-workspace): add load_workspace_file function"
 ## Task 6: Plugin Startup File (Commands and Keymaps)
 
 **Files:**
+
 - Create: `plugin/nvim-workspaces.lua`
 
 **Step 1: Create the plugin startup file**
@@ -1408,6 +1414,7 @@ git commit -m "feat(plugin): add commands and <Plug> mappings"
 ## Task 7: Telescope Integration
 
 **Files:**
+
 - Create: `lua/nvim-workspaces/telescope.lua`
 - Test: (manual testing - telescope requires interactive session)
 
@@ -1604,6 +1611,7 @@ git commit -m "feat(telescope): add pickers for add/remove/load"
 ## Task 8: Auto-Restore on Startup
 
 **Files:**
+
 - Modify: `plugin/nvim-workspaces.lua`
 
 **Step 1: Add auto-restore logic to plugin file**
@@ -1671,6 +1679,7 @@ git commit -m "feat(plugin): add auto-restore and auto-save"
 ## Task 9: Health Checks
 
 **Files:**
+
 - Create: `lua/nvim-workspaces/health.lua`
 
 **Step 1: Create health check module**
@@ -1739,6 +1748,7 @@ git commit -m "feat(health): add health checks"
 ## Task 10: Final Integration - Wire Up Core Module
 
 **Files:**
+
 - Modify: `lua/nvim-workspaces.lua`
 
 **Step 1: Add auto-save trigger to add/remove functions**

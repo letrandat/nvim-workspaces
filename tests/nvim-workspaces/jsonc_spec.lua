@@ -11,5 +11,17 @@ describe("jsonc", function()
       assert.is_nil(result:find("//"))
       assert.is_not_nil(result:find('"key"'))
     end)
+
+    it("strips block comments", function()
+      local input = [[{
+  /* this is a
+     block comment */
+  "key": "value"
+}]]
+      local result = jsonc.strip_comments(input)
+      assert.is_nil(result:find("/*", 1, true))
+      assert.is_nil(result:find("*/", 1, true))
+      assert.is_not_nil(result:find('"key"'))
+    end)
   end)
 end)
