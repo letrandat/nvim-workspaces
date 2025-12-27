@@ -1,12 +1,14 @@
 ---@class nvim-workspaces.Config
----@field auto_restore boolean Auto-restore last session's workspace on startup
----@field auto_load_code_workspace boolean Auto-load .code-workspace file if found
----@field sync_to_code_workspace boolean Sync changes back to .code-workspace file
----@field data_dir string Directory for persistence
----@field picker_cwd string Default directory for Telescope picker
+---@field auto_restore? boolean Auto-restore last session's workspace on startup
+---@field auto_load_code_workspace? boolean Auto-load .code-workspace file if found
+---@field sync_to_code_workspace? boolean Sync changes back to .code-workspace file
+---@field data_dir? string Directory for persistence
+---@field picker_cwd? string Default directory for Telescope picker
+---@field enable_keymaps? boolean Enable default keymaps
 
 ---@class nvim-workspaces.State
 ---@field folders string[] Currently active workspace folders
+---@field name string|nil Current workspace name
 
 ---@class nvim-workspaces
 ---@field config nvim-workspaces.Config
@@ -20,17 +22,48 @@ M.config = {
   sync_to_code_workspace = false,
   data_dir = vim.fn.stdpath("data") .. "/nvim-workspaces",
   picker_cwd = vim.fn.expand("~/workspace"),
+  enable_keymaps = true,
 }
 
 ---@type nvim-workspaces.State
 M.state = {
   folders = {},
+  name = nil,
 }
 
 ---Configure the plugin (optional - works without calling this)
 ---@param opts nvim-workspaces.Config|nil User configuration
 function M.setup(opts)
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
+
+  if M.config.enable_keymaps then
+    local maps = {
+      { "<leader>Wa", "<cmd>Workspaces add<cr>", desc = "Add Workspace Folder" },
+      { "<leader>Wr", "<cmd>Workspaces remove<cr>", desc = "Remove Workspace Folder" },
+      { "<leader>Wl", "<cmd>Workspaces load<cr>", desc = "Load Workspace" },
+      { "<leader>Ws", "<cmd>Workspaces save<cr>", desc = "Save Workspace" },
+      { "<leader>WL", "<cmd>Workspaces list<cr>", desc = "List Workspace Folders" },
+      { "<leader>Wc", "<cmd>Workspaces clear<cr>", desc = "Clear Workspace" },
+      { "<leader>Wd", "<cmd>Workspaces delete<cr>", desc = "Delete Saved Workspace" },
+      { "<leader>Wn", "<cmd>Workspaces rename<cr>", desc = "Rename Workspace" },
+      { "<leader>Wf", "<cmd>Workspaces find<cr>", desc = "Find Files in Workspace" },
+    }
+
+    for _, map in ipairs(maps) do
+      vim.keymap.set("n", map[1], map[2], { desc = map.desc })
+    end
+
+    -- Try to register group with which-key
+    local ok, wk = pcall(require, "which-key")
+    if ok then
+      -- check for v3 vs v2
+      if wk.add then
+        wk.add({ { "<leader>W", group = "workspaces" } })
+      elseif wk.register then
+        wk.register({ ["<leader>W"] = { name = "workspaces" } })
+      end
+    end
+  end
 end
 
 ---Normalize a path (resolve symlinks, remove trailing slash)
@@ -85,6 +118,13 @@ function M.add(path)
   -- Add to LSP workspace folders
   vim.lsp.buf.add_workspace_folder(path)
 
+  -- Auto-save
+  local persistence = require("nvim-workspaces.persistence")
+  persistence.save_current()
+  if M.state.name then
+    persistence.save(M.state.name, true)
+  end
+
   vim.notify("[nvim-workspaces] Added: " .. path, vim.log.levels.INFO)
   return true
 end
@@ -102,6 +142,13 @@ function M.remove(path)
 
       -- Remove from LSP workspace folders
       vim.lsp.buf.remove_workspace_folder(path)
+
+      -- Auto-save
+      local persistence = require("nvim-workspaces.persistence")
+      persistence.save_current()
+      if M.state.name then
+        persistence.save(M.state.name, true)
+      end
 
       vim.notify("[nvim-workspaces] Removed: " .. path, vim.log.levels.INFO)
       return true
@@ -126,6 +173,11 @@ function M.clear()
   end
 
   M.state.folders = {}
+  M.state.name = nil
+
+  -- Auto-save
+  require("nvim-workspaces.persistence").save_current()
+
   vim.notify("[nvim-workspaces] Cleared all workspace folders", vim.log.levels.INFO)
 end
 
