@@ -98,6 +98,17 @@ local function has_folder(path)
   return false
 end
 
+---Auto-save current workspace state
+---Saves to named workspace if loaded, otherwise to _current.json
+local function auto_save()
+  local persistence = require("nvim-workspaces.persistence")
+  if M.state.name then
+    persistence.save(M.state.name, true)
+  else
+    persistence.save_current()
+  end
+end
+
 ---Add a folder to the workspace
 ---@param path string The folder path to add
 ---@return boolean success Whether the folder was added
@@ -123,11 +134,7 @@ function M.add(path)
   vim.lsp.buf.add_workspace_folder(path)
 
   -- Auto-save
-  local persistence = require("nvim-workspaces.persistence")
-  persistence.save_current()
-  if M.state.name then
-    persistence.save(M.state.name, true)
-  end
+  auto_save()
 
   vim.notify("[nvim-workspaces] Added: " .. path, vim.log.levels.INFO)
   return true
@@ -148,11 +155,7 @@ function M.remove(path)
       vim.lsp.buf.remove_workspace_folder(path)
 
       -- Auto-save
-      local persistence = require("nvim-workspaces.persistence")
-      persistence.save_current()
-      if M.state.name then
-        persistence.save(M.state.name, true)
-      end
+      auto_save()
 
       vim.notify("[nvim-workspaces] Removed: " .. path, vim.log.levels.INFO)
       return true
@@ -177,10 +180,11 @@ function M.clear()
   end
 
   M.state.folders = {}
-  M.state.name = nil
 
-  -- Auto-save
-  require("nvim-workspaces.persistence").save_current()
+  -- Auto-save BEFORE clearing the name, so it saves to the correct workspace
+  auto_save()
+
+  M.state.name = nil
 
   vim.notify("[nvim-workspaces] Cleared all workspace folders", vim.log.levels.INFO)
 end
