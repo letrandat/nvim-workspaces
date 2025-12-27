@@ -65,15 +65,11 @@ local subcommands = {
       if name then
         -- Explicit "Save As" with name argument
         require("nvim-workspaces.persistence").save(name)
-        require("nvim-workspaces").state.name = name
-        require("nvim-workspaces.persistence").save_current()
       else
         -- "Save As" prompt
         vim.ui.input({ prompt = "Save Workspace As: " }, function(input_name)
           if input_name and input_name ~= "" then
             require("nvim-workspaces.persistence").save(input_name)
-            require("nvim-workspaces").state.name = input_name
-            require("nvim-workspaces.persistence").save_current()
           end
         end)
       end
@@ -82,15 +78,24 @@ local subcommands = {
   -- Load workspace
   load = {
     impl = function(args)
-      if args[1] then
-        local folders = require("nvim-workspaces.persistence").load(args[1])
+      local name = args[1]
+      if name then
+        local folders = require("nvim-workspaces.persistence").load(name)
         local ws = require("nvim-workspaces")
-        ws.clear()
+
+        -- Manually clear without auto-save to preserve previous workspace
+        for _, folder in ipairs(ws.state.folders) do
+          vim.lsp.buf.remove_workspace_folder(folder)
+        end
+        ws.state.folders = {}
+        ws.state.name = nil
+
+        -- Load new workspace
         for _, folder in ipairs(folders) do
           ws.add(folder)
         end
-        ws.state.name = args[1]
-        vim.notify("[nvim-workspaces] Loaded workspace: " .. args[1], vim.log.levels.INFO)
+        ws.state.name = name
+        vim.notify("[nvim-workspaces] Loaded workspace: " .. name, vim.log.levels.INFO)
       else
         require("nvim-workspaces.telescope").pick_load()
       end
