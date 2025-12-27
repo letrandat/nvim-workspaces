@@ -59,13 +59,8 @@ function M.setup(opts)
 
     -- Try to register group with which-key
     local ok, wk = pcall(require, "which-key")
-    if ok then
-      -- check for v3 vs v2
-      if wk.add then
-        wk.add({ { "<leader>W", group = "workspaces" } })
-      elseif wk.register then
-        wk.register({ ["<leader>W"] = { name = "workspaces" } })
-      end
+    if ok and wk.add then
+      wk.add({ { "<leader>W", group = "workspaces" } })
     end
   end
 end
