@@ -171,3 +171,38 @@ end, { desc = "Save workspace" })
 vim.keymap.set("n", "<Plug>(nvim-workspaces-load)", function()
   require("nvim-workspaces.telescope").pick_load()
 end, { desc = "Load workspace" })
+
+-- Auto-load logic
+vim.api.nvim_create_autocmd("VimEnter", {
+  callback = function()
+    local workspaces = require("nvim-workspaces")
+
+    -- 1. Try to load .code-workspace file
+    if workspaces.config.auto_load_code_workspace then
+      local code_workspace = require("nvim-workspaces.code_workspace")
+      local ws_file = code_workspace.find_workspace_file()
+      if ws_file then
+        local folders = code_workspace.load_workspace_file(ws_file)
+        if #folders > 0 then
+          for _, folder in ipairs(folders) do
+            workspaces.add(folder)
+          end
+          vim.notify("[nvim-workspaces] Loaded workspace from " .. vim.fn.fnamemodify(ws_file, ":t"), vim.log.levels.INFO)
+          return -- Prioritize code-workspace over auto-restore
+        end
+      end
+    end
+
+    -- 2. Try to restore last session
+    if workspaces.config.auto_restore then
+      local persistence = require("nvim-workspaces.persistence")
+      local folders = persistence.load_current()
+      if #folders > 0 then
+        for _, folder in ipairs(folders) do
+          workspaces.add(folder)
+        end
+        vim.notify("[nvim-workspaces] Restored previous workspace", vim.log.levels.INFO)
+      end
+    end
+  end,
+})
