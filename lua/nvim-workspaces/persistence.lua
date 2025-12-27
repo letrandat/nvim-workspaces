@@ -1,15 +1,11 @@
 -- lua/nvim-workspaces/persistence.lua
 local M = {}
 
----Get the main module (lazy require to avoid circular deps)
----@return nvim-workspaces
-local function get_workspaces()
-  return require("nvim-workspaces")
-end
+
 
 ---Ensure data directory exists
 local function ensure_data_dir()
-  local dir = get_workspaces().config.data_dir
+  local dir = require("nvim-workspaces").config.data_dir
   if vim.fn.isdirectory(dir) == 0 then
     vim.fn.mkdir(dir, "p")
   end
@@ -20,7 +16,7 @@ end
 function M.save_current()
   local dir = ensure_data_dir()
   local file = dir .. "/_current.json"
-  local workspaces = get_workspaces()
+  local workspaces = require("nvim-workspaces")
 
   local data = {
     folders = workspaces.state.folders,
@@ -67,7 +63,7 @@ end
 function M.save(name, silent)
   local dir = ensure_data_dir()
   local file = dir .. "/" .. name .. ".json"
-  local workspaces = get_workspaces()
+  local workspaces = require("nvim-workspaces")
 
   local data = {
     folders = workspaces.state.folders,
@@ -76,6 +72,10 @@ function M.save(name, silent)
 
   local json = vim.json.encode(data)
   vim.fn.writefile({ json }, file)
+
+  -- Update state.name after successful persistence
+  workspaces.state.name = name
+
   if not silent then
     vim.notify("[nvim-workspaces] Saved workspace: " .. name, vim.log.levels.INFO)
   end
@@ -85,7 +85,7 @@ end
 ---@param name string The workspace name
 ---@return string[] folders List of valid folder paths
 function M.load(name)
-  local dir = get_workspaces().config.data_dir
+  local dir = require("nvim-workspaces").config.data_dir
   local file = dir .. "/" .. name .. ".json"
 
   if vim.fn.filereadable(file) == 0 then
@@ -114,7 +114,7 @@ end
 ---Delete a named workspace
 ---@param name string The workspace name
 function M.delete(name)
-  local dir = get_workspaces().config.data_dir
+  local dir = require("nvim-workspaces").config.data_dir
   local file = dir .. "/" .. name .. ".json"
 
   if vim.fn.filereadable(file) == 1 then
@@ -128,7 +128,7 @@ end
 ---List all saved workspace names
 ---@return string[] names List of workspace names
 function M.list_saved()
-  local dir = get_workspaces().config.data_dir
+  local dir = require("nvim-workspaces").config.data_dir
 
   if vim.fn.isdirectory(dir) == 0 then
     return {}
@@ -153,7 +153,7 @@ end
 ---@param new_name string The new workspace name
 ---@return boolean success Whether the rename was successful
 function M.rename(old_name, new_name)
-  local dir = get_workspaces().config.data_dir
+  local dir = require("nvim-workspaces").config.data_dir
   local old_file = dir .. "/" .. old_name .. ".json"
   local new_file = dir .. "/" .. new_name .. ".json"
 
