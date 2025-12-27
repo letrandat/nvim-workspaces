@@ -1,0 +1,17 @@
+# Dependencies
+vendor/
+
+# Test artifacts
+/tmp/
+
+# macOS
+.DS_Store
+
+# Editor
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Lua
+*.luac
