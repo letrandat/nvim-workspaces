@@ -33,4 +33,100 @@ function M.setup(opts)
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
 end
 
+---Normalize a path (resolve symlinks, remove trailing slash)
+---@param path string
+---@return string
+local function normalize_path(path)
+  -- Expand ~ and environment variables
+  path = vim.fn.expand(path)
+  -- Resolve to absolute path
+  local resolved = vim.loop.fs_realpath(path)
+  if resolved then
+    path = resolved
+  end
+  -- Remove trailing slash
+  path = path:gsub("/$", "")
+  return path
+end
+
+---Check if a folder is already in the workspace
+---@param path string
+---@return boolean
+local function has_folder(path)
+  for _, folder in ipairs(M.state.folders) do
+    if folder == path then
+      return true
+    end
+  end
+  return false
+end
+
+---Add a folder to the workspace
+---@param path string The folder path to add
+---@return boolean success Whether the folder was added
+function M.add(path)
+  path = normalize_path(path)
+
+  -- Check if path exists
+  if vim.fn.isdirectory(path) == 0 then
+    vim.notify("[nvim-workspaces] Directory does not exist: " .. path, vim.log.levels.ERROR)
+    return false
+  end
+
+  -- Check for duplicates
+  if has_folder(path) then
+    vim.notify("[nvim-workspaces] Already in workspace: " .. path, vim.log.levels.WARN)
+    return false
+  end
+
+  -- Add to state
+  table.insert(M.state.folders, path)
+
+  -- Add to LSP workspace folders
+  vim.lsp.buf.add_workspace_folder(path)
+
+  vim.notify("[nvim-workspaces] Added: " .. path, vim.log.levels.INFO)
+  return true
+end
+
+---Remove a folder from the workspace
+---@param path string The folder path to remove
+---@return boolean success Whether the folder was removed
+function M.remove(path)
+  path = normalize_path(path)
+
+  -- Find and remove from state
+  for i, folder in ipairs(M.state.folders) do
+    if folder == path then
+      table.remove(M.state.folders, i)
+
+      -- Remove from LSP workspace folders
+      vim.lsp.buf.remove_workspace_folder(path)
+
+      vim.notify("[nvim-workspaces] Removed: " .. path, vim.log.levels.INFO)
+      return true
+    end
+  end
+
+  vim.notify("[nvim-workspaces] Not in workspace: " .. path, vim.log.levels.WARN)
+  return false
+end
+
+---Get list of current workspace folders
+---@return string[] folders List of folder paths
+function M.list()
+  return vim.deepcopy(M.state.folders)
+end
+
+---Remove all folders from the workspace
+function M.clear()
+  -- Remove each folder from LSP
+  for _, folder in ipairs(M.state.folders) do
+    vim.lsp.buf.remove_workspace_folder(folder)
+  end
+
+  M.state.folders = {}
+  vim.notify("[nvim-workspaces] Cleared all workspace folders", vim.log.levels.INFO)
+end
+
 return M
