@@ -1,0 +1,13 @@
+local workspaces = require("nvim-workspaces")
+
+describe("nvim-workspaces", function()
+  describe("config", function()
+    it("has sensible defaults", function()
+      assert.is_true(workspaces.config.auto_restore)
+      assert.is_true(workspaces.config.auto_load_code_workspace)
+      assert.is_false(workspaces.config.sync_to_code_workspace)
+      assert.is_not_nil(workspaces.config.data_dir)
+      assert.is_not_nil(workspaces.config.picker_cwd)
+    end)
+  end)
+end)
