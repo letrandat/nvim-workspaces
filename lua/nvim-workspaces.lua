@@ -184,8 +184,6 @@ function M.clear()
   -- Auto-save BEFORE clearing the name, so it saves to the correct workspace
   auto_save()
 
-  M.state.name = nil
-
   vim.notify("[nvim-workspaces] Cleared all workspace folders", vim.log.levels.INFO)
 end
 
