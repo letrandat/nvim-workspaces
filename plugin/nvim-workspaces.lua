@@ -10,6 +10,7 @@ vim.g.loaded_nvim_workspaces = true
 -- Subcommand definitions
 ---@type table<string, { impl: function, complete?: function }>
 local subcommands = {
+  -- Add folder to workspace
   add = {
     impl = function(args)
       if args[1] then
@@ -26,6 +27,7 @@ local subcommands = {
       end, paths)
     end,
   },
+  -- Remove folder from workspace
   remove = {
     impl = function(args)
       if args[1] then
@@ -38,6 +40,7 @@ local subcommands = {
       return require("nvim-workspaces").list()
     end,
   },
+  -- List workspace folders
   list = {
     impl = function()
       local folders = require("nvim-workspaces").list()
@@ -48,6 +51,7 @@ local subcommands = {
       end
     end,
   },
+  -- Clear workspace folders
   clear = {
     impl = function()
       vim.ui.select({ "Yes", "No" }, {
@@ -59,6 +63,7 @@ local subcommands = {
       end)
     end,
   },
+  -- Save workspace
   save = {
     impl = function(args)
       local name = args[1]
@@ -79,6 +84,7 @@ local subcommands = {
       end
     end,
   },
+  -- Load workspace
   load = {
     impl = function(args)
       if args[1] then
@@ -98,6 +104,7 @@ local subcommands = {
       return require("nvim-workspaces.persistence").list_saved()
     end,
   },
+  -- Delete workspace
   delete = {
     impl = function(args)
       if args[1] then
@@ -116,6 +123,7 @@ local subcommands = {
       return require("nvim-workspaces.persistence").list_saved()
     end,
   },
+  -- Rename workspace
   rename = {
     impl = function(args)
       local persistence = require("nvim-workspaces.persistence")
@@ -188,9 +196,22 @@ local subcommands = {
       return require("nvim-workspaces.persistence").list_saved()
     end,
   },
+  -- Find files in workspace
   find = {
     impl = function()
       require("nvim-workspaces.telescope").find_files()
+    end,
+  },
+  -- Open workspace file
+  open = {
+    impl = function()
+      local name = require("nvim-workspaces").state.name
+      local path = require("nvim-workspaces.persistence").path(name)
+      if vim.fn.filereadable(path) == 1 then
+        vim.cmd("edit " .. vim.fn.fnameescape(path))
+      else
+        vim.notify("[nvim-workspaces] Workspace file not found: " .. path, vim.log.levels.ERROR)
+      end
     end,
   },
 }
@@ -201,16 +222,20 @@ local function workspaces_cmd(opts)
   local subcmd = args[1]
 
   if not subcmd then
-    vim.notify(
-      "[nvim-workspaces] Usage: :Workspaces <add|remove|list|clear|save|load|delete|rename>",
-      vim.log.levels.INFO
-    )
+    local keys = vim.tbl_keys(subcommands)
+    table.sort(keys)
+    local usage = "[nvim-workspaces] Usage: :Workspaces <" .. table.concat(keys, "|") .. ">"
+    vim.notify(usage, vim.log.levels.INFO)
     return
   end
 
   local cmd = subcommands[subcmd]
+
   if not cmd then
-    vim.notify("[nvim-workspaces] Unknown subcommand: " .. subcmd, vim.log.levels.ERROR)
+    local keys = vim.tbl_keys(subcommands)
+    table.sort(keys)
+    local usage = "[nvim-workspaces] Usage: :Workspaces <" .. table.concat(keys, "|") .. ">"
+    vim.notify("[nvim-workspaces] Unknown subcommand: " .. subcmd .. "\n" .. usage, vim.log.levels.ERROR)
     return
   end
 
@@ -245,11 +270,11 @@ vim.api.nvim_create_user_command("Workspaces", workspaces_cmd, {
 -- <Plug> mappings
 vim.keymap.set("n", "<Plug>(nvim-workspaces-add)", function()
   require("nvim-workspaces.telescope").pick_add()
-end, { desc = "Add workspace folder" })
+end, { desc = "Add folder to workspace" })
 
 vim.keymap.set("n", "<Plug>(nvim-workspaces-remove)", function()
   require("nvim-workspaces.telescope").pick_remove()
-end, { desc = "Remove workspace folder" })
+end, { desc = "Remove folder from workspace" })
 
 vim.keymap.set("n", "<Plug>(nvim-workspaces-list)", function()
   subcommands.list.impl()
@@ -274,6 +299,10 @@ end, { desc = "Find files in workspace" })
 vim.keymap.set("n", "<Plug>(nvim-workspaces-rename)", function()
   subcommands.rename.impl({})
 end, { desc = "Rename workspace" })
+
+vim.keymap.set("n", "<Plug>(nvim-workspaces-open)", function()
+  subcommands.open.impl({})
+end, { desc = "Open workspace file" })
 
 -- Auto-load logic
 vim.api.nvim_create_autocmd("VimEnter", {

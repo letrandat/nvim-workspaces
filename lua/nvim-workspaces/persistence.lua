@@ -177,4 +177,15 @@ function M.rename(old_name, new_name)
   end
 end
 
+---Get the path to a workspace file
+---@param name string|nil The workspace name (nil for _current)
+---@return string path The absolute path to the workspace file
+function M.path(name)
+  local dir = ensure_data_dir()
+  if not name then
+      return dir .. "/_current.json"
+  end
+  return dir .. "/" .. name .. ".json"
+end
+
 return M

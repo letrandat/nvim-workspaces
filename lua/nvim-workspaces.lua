@@ -47,6 +47,7 @@ function M.setup(opts)
       { "<leader>Wd", "<cmd>Workspaces delete<cr>", desc = "Delete Saved Workspace" },
       { "<leader>Wn", "<cmd>Workspaces rename<cr>", desc = "Rename Workspace" },
       { "<leader>Wf", "<cmd>Workspaces find<cr>", desc = "Find Files in Workspace" },
+      { "<leader>Wo", "<cmd>Workspaces open<cr>", desc = "Open Workspace File" },
     }
 
     for _, map in ipairs(maps) do
