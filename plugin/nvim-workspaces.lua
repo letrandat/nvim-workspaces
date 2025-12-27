@@ -16,15 +16,12 @@ local subcommands = {
       if args[1] then
         require("nvim-workspaces").add(args[1])
       else
-        require("nvim-workspaces.telescope").pick_add()
+        vim.ui.input({ prompt = "Add folder: ", completion = "dir" }, function(path)
+          if path and path ~= "" then
+            require("nvim-workspaces").add(path)
+          end
+        end)
       end
-    end,
-    complete = function(arg_lead)
-      -- Complete directory paths
-      local paths = vim.fn.glob(arg_lead .. "*", false, true)
-      return vim.tbl_filter(function(p)
-        return vim.fn.isdirectory(p) == 1
-      end, paths)
     end,
   },
   -- Remove folder from workspace
@@ -36,9 +33,7 @@ local subcommands = {
         require("nvim-workspaces.telescope").pick_remove()
       end
     end,
-    complete = function()
-      return require("nvim-workspaces").list()
-    end,
+    -- Completion handled in workspaces_complete
   },
   -- List workspace folders
   list = {
@@ -100,9 +95,7 @@ local subcommands = {
         require("nvim-workspaces.telescope").pick_load()
       end
     end,
-    complete = function()
-      return require("nvim-workspaces.persistence").list_saved()
-    end,
+    -- Completion handled in workspaces_complete
   },
   -- Delete workspace
   delete = {
@@ -119,9 +112,7 @@ local subcommands = {
         end)
       end
     end,
-    complete = function()
-      return require("nvim-workspaces.persistence").list_saved()
-    end,
+    -- Completion handled in workspaces_complete
   },
   -- Rename workspace
   rename = {
@@ -192,9 +183,7 @@ local subcommands = {
         end)
       end
     end,
-    complete = function()
-      return require("nvim-workspaces.persistence").list_saved()
-    end,
+    -- Completion handled in workspaces_complete
   },
   -- Find files in workspace
   find = {
@@ -228,26 +217,26 @@ local subcommands = {
         local basename = vim.fn.fnamemodify(ws.state.code_workspace_path, ":t:r")
         -- If already ends in -nvim, keep it, else append -nvim
         if not vim.endswith(basename, "-nvim") then
-            basename = basename .. "-nvim"
+          basename = basename .. "-nvim"
         end
         default_name = basename .. ".code-workspace"
       elseif ws.state.name then
-         -- Fallback to internal name
-         default_name = ws.state.name .. "-nvim.code-workspace"
+        -- Fallback to internal name
+        default_name = ws.state.name .. "-nvim.code-workspace"
       end
 
       vim.ui.input({ prompt = "Export workspace to: ", default = default_name }, function(input)
         if input and input ~= "" then
-            -- If input is just a filename, assume cwd; else allow full path
-            local target_path = input
-            if not vim.startswith(input, "/") then
-                target_path = vim.fn.getcwd() .. "/" .. input
-            end
+          -- If input is just a filename, assume cwd; else allow full path
+          local target_path = input
+          if not vim.startswith(input, "/") then
+            target_path = vim.fn.getcwd() .. "/" .. input
+          end
 
-            local folders = ws.list()
-            if code_workspace.write_workspace_file(target_path, folders) then
-                vim.notify("[nvim-workspaces] Exported to: " .. target_path, vim.log.levels.INFO)
-            end
+          local folders = ws.list()
+          if code_workspace.write_workspace_file(target_path, folders) then
+            vim.notify("[nvim-workspaces] Exported to: " .. target_path, vim.log.levels.INFO)
+          end
         end
       end)
     end,
@@ -285,10 +274,26 @@ end
 local function workspaces_complete(arg_lead, cmdline, _)
   local subcmd, subcmd_arg_lead = cmdline:match("^['<,'>]*Workspaces[!]?%s+(%S+)%s+(.*)$")
 
+  -- Special handling for 'add' subcommand - use built-in dir completion
+  if subcmd == "add" and subcmd_arg_lead then
+    return vim.fn.getcompletion(subcmd_arg_lead, "dir")
+  end
+
+  -- Handle workspace-specific completions
+  if subcmd and subcmd_arg_lead then
+    if subcmd == "remove" then
+      return require("nvim-workspaces").list()
+    elseif subcmd == "load" or subcmd == "delete" or subcmd == "rename" then
+      return require("nvim-workspaces.persistence").list_saved()
+    end
+  end
+
+  -- Fallback to custom completion if defined
   if subcmd and subcmd_arg_lead and subcommands[subcmd] and subcommands[subcmd].complete then
     return subcommands[subcmd].complete(subcmd_arg_lead)
   end
 
+  -- Complete subcommand names
   if cmdline:match("^['<,'>]*Workspaces[!]?%s+%w*$") then
     return vim.tbl_filter(function(key)
       return key:find(arg_lead, 1, true) == 1
