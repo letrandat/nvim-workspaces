@@ -107,6 +107,37 @@ describe("persistence", function()
     end)
   end)
 
+  describe("rename", function()
+    it("renames a saved workspace", function()
+      -- Create initial workspace
+      local file_old = test_dir .. "/old_name.json"
+      vim.fn.writefile({ "{}" }, file_old)
+
+      local success = persistence.rename("old_name", "new_name")
+      assert.is_true(success)
+
+      local file_new = test_dir .. "/new_name.json"
+      assert.equals(0, vim.fn.filereadable(file_old))
+      assert.equals(1, vim.fn.filereadable(file_new))
+    end)
+
+    it("fails if old workspace does not exist", function()
+      local success = persistence.rename("non_existent", "new_name")
+      assert.is_false(success)
+    end)
+
+    it("fails if new workspace already exists", function()
+      local file_old = test_dir .. "/old_name.json"
+      local file_new = test_dir .. "/exists.json"
+      vim.fn.writefile({ "{}" }, file_old)
+      vim.fn.writefile({ "{}" }, file_new)
+
+      local success = persistence.rename("old_name", "exists")
+      assert.is_false(success)
+      assert.equals(1, vim.fn.filereadable(file_old))
+    end)
+  end)
+
   describe("list_saved", function()
     it("lists all saved workspaces", function()
       vim.fn.writefile({ "{}" }, test_dir .. "/project-a.json")
