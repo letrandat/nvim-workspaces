@@ -130,6 +130,8 @@ function M.pick_load()
         for _, folder in ipairs(folders) do
           workspaces.add(folder)
         end
+        workspaces.state.name = name
+        vim.notify("[nvim-workspaces] Loaded workspace: " .. name, vim.log.levels.INFO)
       end
     end)
     return
@@ -165,6 +167,8 @@ function M.pick_load()
           for _, folder in ipairs(folders) do
             workspaces.add(folder)
           end
+          workspaces.state.name = selection.value
+          vim.notify("[nvim-workspaces] Loaded workspace: " .. selection.value, vim.log.levels.INFO)
         end
       end)
       return true
