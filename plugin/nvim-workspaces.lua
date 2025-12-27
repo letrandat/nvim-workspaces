@@ -50,17 +50,30 @@ local subcommands = {
   },
   clear = {
     impl = function()
-      require("nvim-workspaces").clear()
+      vim.ui.select({ "Yes", "No" }, {
+        prompt = "Clear current workspace?",
+      }, function(choice)
+        if choice == "Yes" then
+          require("nvim-workspaces").clear()
+        end
+      end)
     end,
   },
   save = {
     impl = function(args)
-      if args[1] then
-        require("nvim-workspaces.persistence").save(args[1])
+      local name = args[1]
+      if name then
+        -- Explicit "Save As" with name argument
+        require("nvim-workspaces.persistence").save(name)
+        require("nvim-workspaces").state.name = name
+        require("nvim-workspaces.persistence").save_current()
       else
-        vim.ui.input({ prompt = "Workspace name: " }, function(name)
-          if name and name ~= "" then
-            require("nvim-workspaces.persistence").save(name)
+        -- "Save As" prompt
+        vim.ui.input({ prompt = "Save Workspace As: " }, function(input_name)
+          if input_name and input_name ~= "" then
+            require("nvim-workspaces.persistence").save(input_name)
+            require("nvim-workspaces").state.name = input_name
+            require("nvim-workspaces.persistence").save_current()
           end
         end)
       end
@@ -75,6 +88,8 @@ local subcommands = {
         for _, folder in ipairs(folders) do
           ws.add(folder)
         end
+        ws.state.name = args[1]
+        vim.notify("[nvim-workspaces] Loaded workspace: " .. args[1], vim.log.levels.INFO)
       else
         require("nvim-workspaces.telescope").pick_load()
       end
@@ -101,6 +116,78 @@ local subcommands = {
       return require("nvim-workspaces.persistence").list_saved()
     end,
   },
+  rename = {
+    impl = function(args)
+      local persistence = require("nvim-workspaces.persistence")
+      local ws = require("nvim-workspaces")
+      local current_name = ws.state.name
+
+      -- Case 1: Both old and new names provided (explicit rename)
+      if args[1] and args[2] then
+        if persistence.rename(args[1], args[2]) then
+          if current_name == args[1] then
+            ws.state.name = args[2]
+            persistence.save_current()
+          end
+        end
+        return
+      end
+
+      -- Case 2: One name provided (new name for CURRENT workspace)
+      if args[1] then
+        if not current_name then
+          vim.notify(
+            "[nvim-workspaces] No workspace loaded. Use 'Workspaces rename <old> <new>' or load a workspace first.",
+            vim.log.levels.ERROR
+          )
+          return
+        end
+
+        if persistence.rename(current_name, args[1]) then
+          ws.state.name = args[1]
+          persistence.save_current()
+        end
+        return
+      end
+
+      -- Case 3: No args provided
+      -- If we have a current workspace, ask to rename it
+      if current_name then
+        vim.ui.input(
+          { prompt = "Rename workspace '" .. current_name .. "' to: ", default = current_name },
+          function(new_name)
+            if new_name and new_name ~= "" and new_name ~= current_name then
+              if persistence.rename(current_name, new_name) then
+                ws.state.name = new_name
+                persistence.save_current()
+              end
+            end
+          end
+        )
+      else
+        -- Fallback: Select workspace to rename
+        vim.ui.select(persistence.list_saved(), {
+          prompt = "Rename workspace:",
+        }, function(old_name)
+          if old_name then
+            vim.ui.input({ prompt = "New name for " .. old_name .. ": " }, function(new_name)
+              if new_name and new_name ~= "" then
+                if persistence.rename(old_name, new_name) then
+                  if ws.state.name == old_name then
+                    ws.state.name = new_name
+                    persistence.save_current()
+                  end
+                end
+              end
+            end)
+          end
+        end)
+      end
+    end,
+    complete = function()
+      return require("nvim-workspaces.persistence").list_saved()
+    end,
+  },
   find = {
     impl = function()
       require("nvim-workspaces.telescope").find_files()
@@ -114,7 +201,10 @@ local function workspaces_cmd(opts)
   local subcmd = args[1]
 
   if not subcmd then
-    vim.notify("[nvim-workspaces] Usage: :Workspaces <add|remove|list|clear|save|load|delete>", vim.log.levels.INFO)
+    vim.notify(
+      "[nvim-workspaces] Usage: :Workspaces <add|remove|list|clear|save|load|delete|rename>",
+      vim.log.levels.INFO
+    )
     return
   end
 
@@ -181,6 +271,10 @@ vim.keymap.set("n", "<Plug>(nvim-workspaces-find)", function()
   require("nvim-workspaces.telescope").find_files()
 end, { desc = "Find files in workspace" })
 
+vim.keymap.set("n", "<Plug>(nvim-workspaces-rename)", function()
+  subcommands.rename.impl({})
+end, { desc = "Rename workspace" })
+
 -- Auto-load logic
 vim.api.nvim_create_autocmd("VimEnter", {
   callback = function()
@@ -196,7 +290,10 @@ vim.api.nvim_create_autocmd("VimEnter", {
           for _, folder in ipairs(folders) do
             workspaces.add(folder)
           end
-          vim.notify("[nvim-workspaces] Loaded workspace from " .. vim.fn.fnamemodify(ws_file, ":t"), vim.log.levels.INFO)
+          vim.notify(
+            "[nvim-workspaces] Loaded workspace from " .. vim.fn.fnamemodify(ws_file, ":t"),
+            vim.log.levels.INFO
+          )
           return -- Prioritize code-workspace over auto-restore
         end
       end
@@ -205,12 +302,17 @@ vim.api.nvim_create_autocmd("VimEnter", {
     -- 2. Try to restore last session
     if workspaces.config.auto_restore then
       local persistence = require("nvim-workspaces.persistence")
-      local folders = persistence.load_current()
+      local folders, name = persistence.load_current()
       if #folders > 0 then
         for _, folder in ipairs(folders) do
           workspaces.add(folder)
         end
-        vim.notify("[nvim-workspaces] Restored previous workspace", vim.log.levels.INFO)
+        workspaces.state.name = name
+        if name then
+          vim.notify("[nvim-workspaces] Restored workspace: " .. name, vim.log.levels.INFO)
+        else
+          vim.notify("[nvim-workspaces] Restored previous workspace", vim.log.levels.INFO)
+        end
       end
     end
   end,
