@@ -59,8 +59,8 @@ function M.pick_remove()
   }):find()
 end
 
----Pick a saved workspace to load
-function M.pick_load()
+---Pick a saved workspace to switch to
+function M.pick_switch()
   local persistence = require("nvim-workspaces.persistence")
   local saved = persistence.list_saved()
 
@@ -70,7 +70,7 @@ function M.pick_load()
   end
 
   if not has_telescope() then
-    vim.ui.select(saved, { prompt = "Load workspace:" }, function(name)
+    vim.ui.select(saved, { prompt = "Switch to workspace:" }, function(name)
       if name then
         local folders = persistence.load(name)
         if #folders > 0 then
@@ -88,7 +88,7 @@ function M.pick_load()
   local action_state = require("telescope.actions.state")
 
   pickers.new({}, {
-    prompt_title = "Load Workspace",
+    prompt_title = "Switch Workspace",
     finder = finders.new_table({
       results = saved,
       entry_maker = function(entry)

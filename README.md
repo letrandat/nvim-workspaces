@@ -30,10 +30,10 @@ A Neovim plugin for managing multi-root workspaces with LSP integration and `.co
   keys = {
     { "<leader>Wa", "<Plug>(nvim-workspaces-add)", desc = "Add workspace folder" },
     { "<leader>Wr", "<Plug>(nvim-workspaces-remove)", desc = "Remove workspace folder" },
-    { "<leader>Wl", "<Plug>(nvim-workspaces-list)", desc = "List workspace folders" },
-    { "<leader>Wc", "<Plug>(nvim-workspaces-clear)", desc = "Clear all workspace folders" },
+    { "<leader>Ww", "<Plug>(nvim-workspaces-switch)", desc = "Switch workspace" },
     { "<leader>Ws", "<Plug>(nvim-workspaces-save)", desc = "Save workspace" },
-    { "<leader>Wo", "<Plug>(nvim-workspaces-load)", desc = "Load workspace" },
+    { "<leader>WL", "<Plug>(nvim-workspaces-list)", desc = "List workspace folders" },
+    { "<leader>Wc", "<Plug>(nvim-workspaces-clear)", desc = "Clear all workspace folders" },
   },
 }
 ```
@@ -42,15 +42,15 @@ A Neovim plugin for managing multi-root workspaces with LSP integration and `.co
 
 All commands are grouped under `:Workspaces`:
 
-| Command | Description |
-|---------|-------------|
-| `:Workspaces add [path]` | Add folder to workspace (Telescope picker if no path) |
+| Command                     | Description                                                |
+| --------------------------- | ---------------------------------------------------------- |
+| `:Workspaces add [path]`    | Add folder to workspace (Telescope picker if no path)      |
 | `:Workspaces remove [path]` | Remove folder from workspace (Telescope picker if no path) |
-| `:Workspaces list` | Show current workspace folders |
-| `:Workspaces clear` | Remove all workspace folders |
-| `:Workspaces save [name]` | Save current workspace configuration |
-| `:Workspaces load [name]` | Load a saved workspace configuration |
-| `:Workspaces delete [name]` | Delete a saved workspace configuration |
+| `:Workspaces list`          | Show current workspace folders                             |
+| `:Workspaces clear`         | Remove all workspace folders                               |
+| `:Workspaces save [name]`   | Save current workspace configuration                       |
+| `:Workspaces switch [name]` | Switch to a saved workspace configuration                  |
+| `:Workspaces delete [name]` | Delete a saved workspace configuration                     |
 
 ## Configuration
 

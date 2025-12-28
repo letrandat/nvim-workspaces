@@ -42,7 +42,7 @@ function M.setup(opts)
     local maps = {
       { "<leader>Wa", "<cmd>Workspaces add<cr>", desc = "Add Workspace Folder" },
       { "<leader>Wr", "<cmd>Workspaces remove<cr>", desc = "Remove Workspace Folder" },
-      { "<leader>Wl", "<cmd>Workspaces load<cr>", desc = "Load Workspace" },
+      { "<leader>Ww", "<cmd>Workspaces switch<cr>", desc = "Switch Workspace" },
       { "<leader>Ws", "<cmd>Workspaces save<cr>", desc = "Save Workspace" },
       { "<leader>WL", "<cmd>Workspaces list<cr>", desc = "List Workspace Folders" },
       { "<leader>Wc", "<cmd>Workspaces clear<cr>", desc = "Clear Workspace" },

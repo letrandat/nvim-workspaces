@@ -84,8 +84,8 @@ local subcommands = {
       end
     end,
   },
-  -- Load workspace
-  load = {
+  -- Switch workspace
+  switch = {
     impl = function(args)
       local name = args[1]
       if name then
@@ -94,7 +94,7 @@ local subcommands = {
           require("nvim-workspaces").switch_to(name, folders)
         end
       else
-        require("nvim-workspaces.telescope").pick_load()
+        require("nvim-workspaces.telescope").pick_switch()
       end
     end,
     -- Completion handled in workspaces_complete
@@ -287,7 +287,7 @@ local function workspaces_complete(arg_lead, cmdline, _)
   if subcmd and subcmd_arg_lead then
     if subcmd == "remove" then
       return require("nvim-workspaces").list()
-    elseif subcmd == "load" or subcmd == "delete" or subcmd == "rename" then
+    elseif subcmd == "switch" or subcmd == "delete" or subcmd == "rename" then
       return require("nvim-workspaces.persistence").list_saved()
     end
   end
@@ -335,9 +335,9 @@ vim.keymap.set("n", "<Plug>(nvim-workspaces-save)", function()
   subcommands.save.impl({})
 end, { desc = "Save workspace" })
 
-vim.keymap.set("n", "<Plug>(nvim-workspaces-load)", function()
-  require("nvim-workspaces.telescope").pick_load()
-end, { desc = "Load workspace" })
+vim.keymap.set("n", "<Plug>(nvim-workspaces-switch)", function()
+  require("nvim-workspaces.telescope").pick_switch()
+end, { desc = "Switch workspace" })
 
 vim.keymap.set("n", "<Plug>(nvim-workspaces-find)", function()
   require("nvim-workspaces.telescope").find_files()
@@ -398,7 +398,7 @@ vim.api.nvim_create_autocmd("VimEnter", {
 vim.api.nvim_create_autocmd("LspAttach", {
   callback = function(args)
     local client = vim.lsp.get_client_by_id(args.data.client_id)
-    if client and client.supports_method("workspace/didChangeWorkspaceFolders", args.buf) then
+    if client and client:supports_method("workspace/didChangeWorkspaceFolders", { bufnr = args.buf }) then
       local workspaces = require("nvim-workspaces")
       for _, folder in ipairs(workspaces.state.folders) do
         vim.lsp.buf.add_workspace_folder(folder)
