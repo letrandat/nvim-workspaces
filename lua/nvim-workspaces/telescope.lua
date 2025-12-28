@@ -73,13 +73,9 @@ function M.pick_load()
     vim.ui.select(saved, { prompt = "Load workspace:" }, function(name)
       if name then
         local folders = persistence.load(name)
-        local workspaces = require("nvim-workspaces")
-        workspaces.clear()
-        for _, folder in ipairs(folders) do
-          workspaces.add(folder)
+        if #folders > 0 then
+          require("nvim-workspaces").switch_to(name, folders)
         end
-        workspaces.state.name = name
-        vim.notify("[nvim-workspaces] Loaded workspace: " .. name, vim.log.levels.INFO)
       end
     end)
     return
@@ -110,13 +106,9 @@ function M.pick_load()
         local selection = action_state.get_selected_entry()
         if selection then
           local folders = persistence.load(selection.value)
-          local workspaces = require("nvim-workspaces")
-          workspaces.clear()
-          for _, folder in ipairs(folders) do
-            workspaces.add(folder)
+          if #folders > 0 then
+            require("nvim-workspaces").switch_to(selection.value, folders)
           end
-          workspaces.state.name = selection.value
-          vim.notify("[nvim-workspaces] Loaded workspace: " .. selection.value, vim.log.levels.INFO)
         end
       end)
       return true
@@ -124,32 +116,14 @@ function M.pick_load()
   }):find()
 end
 
----Get all search directories (CWD + workspace folders)
+---Get all search directories (workspace folders only)
 ---@return string[]
 function M.get_search_dirs()
   local workspaces = require("nvim-workspaces")
-  local folders = workspaces.list()
-  local cwd = vim.fn.getcwd()
-
-  -- Use a set for deduping
-  local seen = {}
-  local dirs = {}
-
-  -- Add CWD first
-  table.insert(dirs, cwd)
-  seen[cwd] = true
-
-  for _, folder in ipairs(folders) do
-    if not seen[folder] then
-      table.insert(dirs, folder)
-      seen[folder] = true
-    end
-  end
-
-  return dirs
+  return workspaces.list()
 end
 
----Search files across all workspace folders + CWD
+---Search files across all workspace folders
 function M.find_files()
   if not has_telescope() then
     vim.notify("[nvim-workspaces] Telescope is required for find_files", vim.log.levels.ERROR)
