@@ -62,14 +62,23 @@ local subcommands = {
   save = {
     impl = function(args)
       local name = args[1]
+      local ws = require("nvim-workspaces")
+      local persistence = require("nvim-workspaces.persistence")
+
       if name then
         -- Explicit "Save As" with name argument
-        require("nvim-workspaces.persistence").save(name)
+        if persistence.save(name, ws.state.folders) then
+          ws.state.name = name
+          persistence.save_current()
+        end
       else
         -- "Save As" prompt
         vim.ui.input({ prompt = "Save Workspace As: " }, function(input_name)
           if input_name and input_name ~= "" then
-            require("nvim-workspaces.persistence").save(input_name)
+            if persistence.save(input_name, ws.state.folders) then
+              ws.state.name = input_name
+              persistence.save_current()
+            end
           end
         end)
       end
@@ -81,21 +90,9 @@ local subcommands = {
       local name = args[1]
       if name then
         local folders = require("nvim-workspaces.persistence").load(name)
-        local ws = require("nvim-workspaces")
-
-        -- Manually clear without auto-save to preserve previous workspace
-        for _, folder in ipairs(ws.state.folders) do
-          vim.lsp.buf.remove_workspace_folder(folder)
+        if #folders > 0 then
+          require("nvim-workspaces").switch_to(name, folders)
         end
-        ws.state.folders = {}
-        ws.state.name = nil
-
-        -- Load new workspace
-        for _, folder in ipairs(folders) do
-          ws.add(folder)
-        end
-        ws.state.name = name
-        vim.notify("[nvim-workspaces] Loaded workspace: " .. name, vim.log.levels.INFO)
       else
         require("nvim-workspaces.telescope").pick_load()
       end
@@ -233,8 +230,10 @@ local subcommands = {
       vim.ui.input({ prompt = "Export workspace to: ", default = default_name }, function(input)
         if input and input ~= "" then
           -- If input is just a filename, assume cwd; else allow full path
+          -- Check for Unix absolute path (/) or Windows absolute path (C:\, D:\, etc.)
           local target_path = input
-          if not vim.startswith(input, "/") then
+          local is_absolute = vim.startswith(input, "/") or input:match("^%a:[/\\]")
+          if not is_absolute then
             target_path = vim.fn.getcwd() .. "/" .. input
           end
 
@@ -329,7 +328,7 @@ vim.keymap.set("n", "<Plug>(nvim-workspaces-list)", function()
 end, { desc = "List workspace folders" })
 
 vim.keymap.set("n", "<Plug>(nvim-workspaces-clear)", function()
-  require("nvim-workspaces").clear()
+  subcommands.clear.impl()
 end, { desc = "Clear workspace folders" })
 
 vim.keymap.set("n", "<Plug>(nvim-workspaces-save)", function()
@@ -368,9 +367,7 @@ vim.api.nvim_create_autocmd("VimEnter", {
       if ws_file then
         local folders = code_workspace.load_workspace_file(ws_file)
         if #folders > 0 then
-          for _, folder in ipairs(folders) do
-            workspaces.add(folder)
-          end
+          workspaces.switch_to(nil, folders, { silent = true })
           workspaces.state.code_workspace_path = ws_file
           vim.notify(
             "[nvim-workspaces] Loaded workspace from " .. vim.fn.fnamemodify(ws_file, ":t"),
@@ -386,15 +383,25 @@ vim.api.nvim_create_autocmd("VimEnter", {
       local persistence = require("nvim-workspaces.persistence")
       local folders, name = persistence.load_current()
       if #folders > 0 then
-        for _, folder in ipairs(folders) do
-          workspaces.add(folder)
-        end
-        workspaces.state.name = name
+        workspaces.switch_to(name, folders, { silent = true })
         if name then
           vim.notify("[nvim-workspaces] Restored workspace: " .. name, vim.log.levels.INFO)
         else
           vim.notify("[nvim-workspaces] Restored previous workspace", vim.log.levels.INFO)
         end
+      end
+    end
+  end,
+})
+
+-- LspAttach: sync workspace folders to newly attached clients
+vim.api.nvim_create_autocmd("LspAttach", {
+  callback = function(args)
+    local client = vim.lsp.get_client_by_id(args.data.client_id)
+    if client and client.supports_method("workspace/didChangeWorkspaceFolders", args.buf) then
+      local workspaces = require("nvim-workspaces")
+      for _, folder in ipairs(workspaces.state.folders) do
+        vim.lsp.buf.add_workspace_folder(folder)
       end
     end
   end,
