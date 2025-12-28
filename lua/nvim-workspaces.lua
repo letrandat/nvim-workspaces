@@ -98,27 +98,36 @@ end
 local function auto_save()
   local persistence = require("nvim-workspaces.persistence")
   if M.state.name then
-    persistence.save(M.state.name, true)
+    persistence.save(M.state.name, M.state.folders, { silent = true })
   else
     persistence.save_current()
   end
 end
 
+---@class nvim-workspaces.AddOpts
+---@field silent? boolean Suppress notifications and auto-save
+
 ---Add a folder to the workspace
 ---@param path string The folder path to add
+---@param opts? nvim-workspaces.AddOpts
 ---@return boolean success Whether the folder was added
-function M.add(path)
+function M.add(path, opts)
+  opts = opts or {}
   path = normalize_path(path)
 
   -- Check if path exists
   if vim.fn.isdirectory(path) == 0 then
-    vim.notify("[nvim-workspaces] Directory does not exist: " .. path, vim.log.levels.ERROR)
+    if not opts.silent then
+      vim.notify("[nvim-workspaces] Directory does not exist: " .. path, vim.log.levels.ERROR)
+    end
     return false
   end
 
   -- Check for duplicates
   if has_folder(path) then
-    vim.notify("[nvim-workspaces] Already in workspace: " .. path, vim.log.levels.WARN)
+    if not opts.silent then
+      vim.notify("[nvim-workspaces] Already in workspace: " .. path, vim.log.levels.WARN)
+    end
     return false
   end
 
@@ -128,10 +137,11 @@ function M.add(path)
   -- Add to LSP workspace folders
   vim.lsp.buf.add_workspace_folder(path)
 
-  -- Auto-save
-  auto_save()
+  if not opts.silent then
+    auto_save()
+    vim.notify("[nvim-workspaces] Added: " .. path, vim.log.levels.INFO)
+  end
 
-  vim.notify("[nvim-workspaces] Added: " .. path, vim.log.levels.INFO)
   return true
 end
 
@@ -167,19 +177,64 @@ function M.list()
   return vim.deepcopy(M.state.folders)
 end
 
----Remove all folders from the workspace
-function M.clear()
+---Remove all folders from the workspace (internal, no auto-save)
+---@param silent? boolean Suppress notification
+local function clear_internal(silent)
   -- Remove each folder from LSP
   for _, folder in ipairs(M.state.folders) do
     vim.lsp.buf.remove_workspace_folder(folder)
   end
 
   M.state.folders = {}
+  M.state.name = nil
 
-  -- Auto-save BEFORE clearing the name, so it saves to the correct workspace
+  if not silent then
+    vim.notify("[nvim-workspaces] Cleared all workspace folders", vim.log.levels.INFO)
+  end
+end
+
+---Remove all folders from the workspace
+function M.clear()
+  clear_internal(false)
   auto_save()
+end
 
-  vim.notify("[nvim-workspaces] Cleared all workspace folders", vim.log.levels.INFO)
+---@class nvim-workspaces.SwitchOpts
+---@field silent? boolean Suppress notifications
+
+---Switch to a workspace
+---@param name string|nil Workspace name (nil for anonymous)
+---@param folders string[] Folder paths to activate
+---@param opts? nvim-workspaces.SwitchOpts
+function M.switch_to(name, folders, opts)
+  opts = opts or {}
+
+  -- Clear current workspace without auto-save or notification
+  clear_internal(true)
+
+  -- Add folders silently
+  local added = 0
+  for _, folder in ipairs(folders) do
+    if M.add(folder, { silent = true }) then
+      added = added + 1
+    end
+  end
+
+  -- Set workspace name
+  M.state.name = name
+
+  -- Save to _current.json for session restore
+  local persistence = require("nvim-workspaces.persistence")
+  persistence.save_current()
+
+  -- Single notification
+  if not opts.silent then
+    local display_name = name or "workspace"
+    vim.notify(
+      string.format("[nvim-workspaces] Switched to: %s (%d folders)", display_name, added),
+      vim.log.levels.INFO
+    )
+  end
 end
 
 return M
