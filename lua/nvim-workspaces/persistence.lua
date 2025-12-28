@@ -14,6 +14,7 @@ local function ensure_data_dir()
 end
 
 ---Save current workspace state to _current.json
+---@return boolean success
 function M.save_current()
   local dir = ensure_data_dir()
   local file = dir .. "/_current.json"
@@ -25,8 +26,14 @@ function M.save_current()
     updated = os.date("!%Y-%m-%dT%H:%M:%SZ"),
   }
 
-  local json = vim.json.encode(data)
+  local ok, json = pcall(vim.json.encode, data)
+  if not ok then
+    vim.notify("[nvim-workspaces] Failed to encode current state: " .. tostring(json), vim.log.levels.ERROR)
+    return false
+  end
+
   vim.fn.writefile({ json }, file)
+  return true
 end
 
 ---Load current workspace state from _current.json
@@ -58,28 +65,34 @@ function M.load_current()
   return valid, data.name
 end
 
----Save current workspace with a name
+---Save workspace with a name
 ---@param name string The workspace name
----@param silent? boolean Whether to suppress notification
-function M.save(name, silent)
+---@param folders string[] The folder paths to save
+---@param opts? { silent?: boolean }
+---@return boolean success
+function M.save(name, folders, opts)
+  opts = opts or {}
   local dir = ensure_data_dir()
   local file = dir .. "/" .. name .. ".json"
-  local workspaces = require("nvim-workspaces")
 
   local data = {
-    folders = workspaces.state.folders,
+    folders = folders,
     created = os.date("!%Y-%m-%dT%H:%M:%SZ"),
   }
 
-  local json = vim.json.encode(data)
+  local ok, json = pcall(vim.json.encode, data)
+  if not ok then
+    vim.notify("[nvim-workspaces] Failed to encode workspace: " .. tostring(json), vim.log.levels.ERROR)
+    return false
+  end
+
   vim.fn.writefile({ json }, file)
 
-  -- Update state.name after successful persistence
-  workspaces.state.name = name
-
-  if not silent then
+  if not opts.silent then
     vim.notify("[nvim-workspaces] Saved workspace: " .. name, vim.log.levels.INFO)
   end
+
+  return true
 end
 
 ---Load a named workspace
