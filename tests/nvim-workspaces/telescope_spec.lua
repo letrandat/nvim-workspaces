@@ -30,44 +30,31 @@ describe("telescope integration", function()
     workspaces.state.folders = {} -- Reset state
   end)
 
-  it("get_search_dirs returns cwd and workspace folders", function()
+  it("get_search_dirs returns workspace folders only", function()
     -- Add some folders to workspace
     workspaces.state.folders = { "/tmp/project-a", "/tmp/project-b" }
 
     local dirs = telescope_integration.get_search_dirs()
 
-    assert.equals(3, #dirs)
-    -- Order might vary depending on implementation, but let's check contents
-    local has_cwd = false
+    assert.equals(2, #dirs)
+    -- Check contents
     local has_a = false
     local has_b = false
 
     for _, d in ipairs(dirs) do
-      if d == "/tmp/current-project" then has_cwd = true end
       if d == "/tmp/project-a" then has_a = true end
       if d == "/tmp/project-b" then has_b = true end
     end
 
-    assert.is_true(has_cwd, "Should include CWD")
     assert.is_true(has_a, "Should include project-a")
     assert.is_true(has_b, "Should include project-b")
   end)
 
-  it("get_search_dirs dedupes if cwd is in workspace", function()
-    workspaces.state.folders = { "/tmp/current-project", "/tmp/project-a" }
+  it("get_search_dirs returns empty when no workspace folders", function()
+    workspaces.state.folders = {}
 
     local dirs = telescope_integration.get_search_dirs()
 
-    assert.equals(2, #dirs)
-    local has_cwd = false
-    local has_a = false
-
-    for _, d in ipairs(dirs) do
-      if d == "/tmp/current-project" then has_cwd = true end
-      if d == "/tmp/project-a" then has_a = true end
-    end
-
-    assert.is_true(has_cwd)
-    assert.is_true(has_a)
+    assert.equals(0, #dirs)
   end)
 end)
